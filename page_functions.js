@@ -1,150 +1,153 @@
-// page_functions.js
+function highlightController(options) {
+    function isElementVisible(el) {
+        if (!el) return false;
+        return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+    }
 
-function findAndHighlight(pattern, shouldSearchAttributes) {
-    // Cleanup logic is now self-contained
-    const textHighlights = document.querySelectorAll('span[data-gemini-highlight="text"]');
-    textHighlights.forEach(el => {
-        const parent = el.parentNode;
-        parent.replaceChild(document.createTextNode(el.textContent), el);
-        parent.normalize();
-    });
-    const attrHighlights = document.querySelectorAll('[data-gemini-highlight="attribute"]');
-    attrHighlights.forEach(el => {
-        el.removeAttribute('data-gemini-highlight');
-        el.style.backgroundColor = '';
-        el.style.position = ''; // Reset position
-        el.style.zIndex = '';   // Reset z-index
-    });
+    function clearAllHighlights() {
+        // Remove highlight classes
+        document.querySelectorAll('.gemini-highlight').forEach(el => {
+            el.classList.remove('gemini-highlight', 'gemini-highlight-current');
+        });
 
-    if (!pattern) return 0;
-    const regex = new RegExp(pattern, "i");
-    const attrMatchElements = [];
-    
-    if (shouldSearchAttributes) {
-        const attributeWhitelist = ['href'];
-        const allElements = document.querySelectorAll('*');
-        allElements.forEach(el => {
-            for (const attr of el.attributes) {
-                if (attributeWhitelist.includes(attr.name.toLowerCase()) && regex.test(attr.value)) {
-                    el.dataset.geminiHighlight = "attribute";
-                    el.style.backgroundColor = 'rgba(173, 216, 230, 0.3)';
-                    el.style.position = 'relative'; // Set position
-                    el.style.zIndex = '9999';       // Set z-index
-                    attrMatchElements.push(el);
-                    break; 
-                }
+        // Replace <span> wrappers created for text highlights
+        document.querySelectorAll('span.gemini-highlight').forEach(el => {
+            const parent = el.parentNode;
+            if (parent) {
+                parent.replaceChild(document.createTextNode(el.textContent), el);
+                parent.normalize();
             }
         });
-    }
-    // Find Attribute Matches FIRST
 
-
-    // Find Text Matches, ignoring any inside an already-found attribute match
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-    let textNode;
-    const nodesToProcess = [];
-    while (textNode = walker.nextNode()) {
-        const parentTag = textNode.parentNode.tagName;
-        if (parentTag === 'SCRIPT' || parentTag === 'STYLE' || parentTag === 'CODE') continue;
-
-        if (attrMatchElements.some(el => el.contains(textNode))) {
-            continue;
-        }
-
-        if (regex.test(textNode.textContent)) {
-            nodesToProcess.push(textNode);
-        }
+        window.geminiMatches = [];
     }
 
-    const textMatchElements = [];
-    nodesToProcess.forEach(node => {
-        const matches = node.textContent.matchAll(new RegExp(pattern, "gi")); // Ensure global flag for matchAll
-        let lastIndex = 0;
-        const newNodes = [];
-        for (const match of matches) {
-            if (match.index > lastIndex) {
-                newNodes.push(document.createTextNode(node.textContent.slice(lastIndex, match.index)));
+    async function revealElement(el) {
+        let current = el;
+        for (let i = 0; i < 10; i++) {
+            if (isElementVisible(el)) return true;
+            if (!current || !current.parentElement) break;
+            current = current.parentElement;
+
+            if (current.id) {
+                const trigger = document.querySelector(`[aria-controls="${current.id}"][aria-expanded="false"]`);
+                if (trigger && isElementVisible(trigger)) {
+                    trigger.click();
+                    await new Promise(r => setTimeout(r, 300));
+                    continue;
+                }
             }
-            const span = document.createElement('span');
-            span.dataset.geminiHighlight = "text";
-            span.style.backgroundColor = 'yellow';
-            span.style.color = 'black';
-            span.textContent = match[0];
-            newNodes.push(span);
-            textMatchElements.push(span);
-            lastIndex = match.index + match[0].length;
+
+            if (current.id) {
+                const bsTrigger = document.querySelector(`[data-bs-target="#${current.id}"],[data-target="#${current.id}"]`);
+                if (bsTrigger && isElementVisible(bsTrigger) && (bsTrigger.classList.contains('collapsed') || bsTrigger.getAttribute('aria-expanded') === 'false')) {
+                    bsTrigger.click();
+                    await new Promise(r => setTimeout(r, 300));
+                    continue;
+                }
+            }
+
+            if (current.tagName === 'DETAILS' && !current.open) {
+                const summary = current.querySelector('summary');
+                if (summary) {
+                    summary.click();
+                    await new Promise(r => setTimeout(r, 100));
+                    continue;
+                }
+            }
         }
-        if (lastIndex < node.textContent.length) {
-            newNodes.push(document.createTextNode(node.textContent.slice(lastIndex)));
+        return isElementVisible(el);
+    }
+
+    function findAndHighlight(pattern, shouldSearchAttributes) {
+        clearAllHighlights();
+
+        if (!pattern) return 0;
+        const regex = new RegExp(pattern, "i");
+        const attrMatchElements = [];
+
+        if (shouldSearchAttributes) {
+            const attributeWhitelist = ['href'];
+            document.body.querySelectorAll('*').forEach(el => {
+                if (el.classList.contains('gemini-highlight')) return;
+                for (const attr of el.attributes) {
+                    if (attributeWhitelist.includes(attr.name.toLowerCase()) && regex.test(attr.value)) {
+                        el.classList.add('gemini-highlight');
+                        attrMatchElements.push(el);
+                        break;
+                    }
+                }
+            });
         }
-        node.replaceWith(...newNodes);
-    });
 
-    window.geminiMatches = [...attrMatchElements, ...textMatchElements];
-    return window.geminiMatches.length;
-}
-
-function getVisibleIndices() {
-    if (!window.geminiMatches) return [];
-    
-    const visibleIndices = [];
-    window.geminiMatches.forEach((el, index) => {
-        const style = window.getComputedStyle(el);
-        const isVisible = 
-            style.display !== 'none' &&
-            style.visibility !== 'hidden' &&
-            el.offsetWidth > 0 &&
-            el.offsetHeight > 0;
-
-        if (isVisible) {
-            visibleIndices.push(index);
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        const nodesToProcess = [];
+        let textNode;
+        while (textNode = walker.nextNode()) {
+            const parentTag = textNode.parentNode.tagName;
+            if (['SCRIPT', 'STYLE', 'CODE'].includes(parentTag) || textNode.parentNode.isContentEditable) continue;
+            if (attrMatchElements.some(el => el.contains(textNode))) continue;
+            if (regex.test(textNode.textContent)) nodesToProcess.push(textNode);
         }
-    });
-    return visibleIndices;
-}
 
-function clearAllHighlights() {
-    const textHighlights = document.querySelectorAll('span[data-gemini-highlight="text"]');
-    textHighlights.forEach(el => {
-        const parent = el.parentNode;
-        parent.replaceChild(document.createTextNode(el.textContent), el);
-        parent.normalize();
-    });
+        const textMatchElements = [];
+        nodesToProcess.forEach(node => {
+            const matches = [...node.textContent.matchAll(new RegExp(pattern, "gi"))];
+            if (matches.length === 0) return;
 
-    const attrHighlights = document.querySelectorAll('[data-gemini-highlight="attribute"]');
-    attrHighlights.forEach(el => {
-        el.removeAttribute('data-gemini-highlight');
-        el.style.backgroundColor = '';
-        el.style.position = ''; // Reset position
-        el.style.zIndex = '';   // Reset z-index
-    });
+            const newNodes = [];
+            let lastIndex = 0;
+            for (const match of matches) {
+                if (match.index > lastIndex) {
+                    newNodes.push(document.createTextNode(node.textContent.slice(lastIndex, match.index)));
+                }
+                const span = document.createElement('span');
+                span.classList.add('gemini-highlight');
+                span.textContent = match[0];
+                newNodes.push(span);
+                textMatchElements.push(span);
+                lastIndex = match.index + match[0].length;
+            }
+            if (lastIndex < node.textContent.length) {
+                newNodes.push(document.createTextNode(node.textContent.slice(lastIndex)));
+            }
+            node.replaceWith(...newNodes);
+        });
 
-    window.geminiMatches = [];
-}
+        window.geminiMatches = [...attrMatchElements, ...textMatchElements];
+        return window.geminiMatches.length;
+    }
 
-function scrollToMatch(index) {
-    if (!window.geminiMatches || window.geminiMatches.length === 0) return;
-
-    window.geminiMatches.forEach(el => {
-        if (el.dataset.geminiHighlight === 'text') {
-            el.style.backgroundColor = 'yellow';
-        } else if (el.dataset.geminiHighlight === 'attribute') {
-            el.style.backgroundColor = 'rgba(173, 216, 230, 0.3)';
+    async function scrollToMatch(index) {
+        if (!window.geminiMatches || !window.geminiMatches[index]) return;
+        const targetElement = window.geminiMatches[index];
+        console.log(targetElement)
+        if (!isElementVisible(targetElement)) {
+            await revealElement(targetElement);
         }
-    });
 
-    const targetElement = window.geminiMatches[index];
-    if (targetElement) {
-        if (targetElement.dataset.geminiHighlight === 'text') {
-            targetElement.style.backgroundColor = 'orange';
-        } else if (targetElement.dataset.geminiHighlight === 'attribute') {
-            targetElement.style.backgroundColor = 'rgba(255, 165, 0, 0.4)';
-        }
+        document.querySelectorAll('.gemini-highlight-current')
+            .forEach(el => el.classList.remove('gemini-highlight-current'));
+
+        targetElement.classList.add('gemini-highlight-current');
         
         targetElement.scrollIntoView({
             behavior: 'smooth',
             block: 'center',
             inline: 'nearest'
         });
+    }
+
+    // --- Action router ---
+    switch (options.action) {
+        case 'find':
+            return findAndHighlight(options.pattern, options.shouldSearchAttributes);
+        case 'clear':
+            clearAllHighlights();
+            return;
+        case 'scrollTo':
+            return scrollToMatch(options.index);
+        default:
+            throw new Error(`Unknown action: ${options.action}`);
     }
 }

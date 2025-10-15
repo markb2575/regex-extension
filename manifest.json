@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Text/Regex Highlighter",
-    "version": "1.1",
+    "version": "1.5",
     "description": "Finds, highlights, and navigates text and regex matches on a page.",
     "permissions": [
         "activeTab",
@@ -25,7 +25,11 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": ["popup.html"],
+            "resources": [
+                "popup.html", 
+                "iframe-styles.css", 
+                "highlight-styles.css"
+            ],
             "matches": ["<all_urls>"]
         }
     ]

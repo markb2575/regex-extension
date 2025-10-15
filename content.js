@@ -1,56 +1,58 @@
 // content.js
 
 let iframe = null;
+const IFRAME_ID = "gemini-highlighter-iframe";
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === "TOGGLE_UI") {
-    toggleIframe();
-  }
+    if (request.type === "TOGGLE_UI") {
+        toggleIframe();
+    }
 });
 
-// Listen for messages from the iframe (e.g., to close itself)
 window.addEventListener("message", (event) => {
-    // THIS IS THE NEW, MORE ROBUST CHECK:
-    // It stops if the iframe hasn't been created OR if its contentWindow isn't ready.
-    if (!iframe || !iframe.contentWindow) {
+    if (!iframe || !iframe.contentWindow || event.source !== iframe.contentWindow) {
         return;
     }
-
-    // We only accept messages from our own extension
-    if (event.source !== iframe.contentWindow) {
-        return;
-    }
-
     if (event.data.type === "CLOSE_UI") {
-        iframe.style.display = "none";
+        iframe.classList.remove("visible");
     }
 });
 
+// This function now injects BOTH stylesheets
+function injectStyles() {
+    // Inject iframe styles if not already present
+    if (!document.getElementById('gemini-iframe-styles')) {
+        const iframeLink = document.createElement('link');
+        iframeLink.id = 'gemini-iframe-styles';
+        iframeLink.rel = 'stylesheet';
+        iframeLink.type = 'text/css';
+        iframeLink.href = chrome.runtime.getURL('iframe-styles.css');
+        (document.head || document.documentElement).appendChild(iframeLink);
+    }
+    
+    // Inject highlight styles if not already present
+    if (!document.getElementById('gemini-highlight-styles')) {
+        const highlightLink = document.createElement('link');
+        highlightLink.id = 'gemini-highlight-styles';
+        highlightLink.rel = 'stylesheet';
+        highlightLink.type = 'text/css';
+        highlightLink.href = chrome.runtime.getURL('highlight-styles.css');
+        (document.head || document.documentElement).appendChild(highlightLink);
+    }
+}
 
 function toggleIframe() {
-  if (iframe) {
-    // Toggle visibility if it already exists
-    const isVisible = iframe.style.display === "block";
-    iframe.style.display = isVisible ? "none" : "block";
-  } else {
-    // Create the iframe if it doesn't exist
-    iframe = document.createElement('iframe');
-    iframe.src = chrome.runtime.getURL('popup.html');
+    // Inject styles on first toggle action
+    injectStyles(); 
 
-    // --- UPDATED STYLES ---
-    iframe.style.position = "fixed";
-    iframe.style.top = "15px";
-    iframe.style.right = "15px";
-    iframe.style.width = "330px"; // Increased width for new padding
-    iframe.style.height = "260px"; // Increased height for better spacing
-    iframe.style.border = "1px solid #43464c"; // Darker border
-    iframe.style.borderRadius = "10px"; // Softer corners
-    iframe.style.boxShadow = "0 5px 15px rgba(0,0,0,0.4)"; // Deeper shadow for depth
-    iframe.style.zIndex = "99999999";
-    iframe.style.display = "block";
-    iframe.style.overflow = "hidden"; // Ensures content respects border-radius
-    iframe.style.backgroundColor = "#2b2d31"; // Match the body background to prevent flash
-
-    document.body.appendChild(iframe);
-  }
+    if (iframe) {
+        iframe.classList.toggle("visible");
+    } else {
+        iframe = document.createElement('iframe');
+        iframe.id = IFRAME_ID;
+        iframe.src = chrome.runtime.getURL('popup.html');
+        iframe.classList.add("visible");
+        
+        document.body.appendChild(iframe);
+    }
 }

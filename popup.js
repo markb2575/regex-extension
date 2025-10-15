@@ -1,6 +1,5 @@
 // popup.js
 document.addEventListener("DOMContentLoaded", () => {
-    // --- Get references to all our HTML elements ---
     const searchInput = document.getElementById("searchInput");
     const searchBtn = document.getElementById("searchBtn");
     const resultDiv = document.getElementById("result");
@@ -11,137 +10,113 @@ document.addEventListener("DOMContentLoaded", () => {
     const closeBtn = document.getElementById("closeBtn");
     const searchAttributesCheckbox = document.getElementById("searchAttributes");
 
-    // --- State variables ---
     let totalMatches = 0;
-    let visibleIndices = [];
-    let currentVisibleIndex = -1;
+    let currentIndex = -1;
 
-    // --- Load last search on startup and re-run it ---
+    // Load last search on startup
     chrome.storage.local.get(['lastSearchPattern'], (result) => {
         if (result.lastSearchPattern) {
             searchInput.value = result.lastSearchPattern;
-            // Automatically trigger the search if a previous pattern exists
             performSearch(); 
         }
     });
 
-    // --- Event Listeners ---
-
-    // Close the UI by sending a message to the parent content script
     closeBtn.addEventListener("click", () => {
         window.parent.postMessage({ type: "CLOSE_UI" }, "*");
     });
 
     searchBtn.addEventListener("click", performSearch);
+    searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") performSearch();
+    });
 
     async function performSearch() {
         const pattern = searchInput.value;
         if (!pattern) return;
 
-        // Save the pattern to storage for persistence
         chrome.storage.local.set({ lastSearchPattern: pattern });
 
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tab || !tab.id) return;
-        const shouldSearchAttributes = searchAttributesCheckbox.checked;
+        
         try {
             const findResults = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
-                func: findAndHighlight,
-                args: [pattern, shouldSearchAttributes]
+                func: highlightController,
+                args: [{
+                    action: 'find',
+                    pattern: pattern,
+                    shouldSearchAttributes: searchAttributesCheckbox.checked
+                }]
             });
 
-            if (!findResults || !findResults[0]) return;
-            totalMatches = findResults[0].result || 0;
+            totalMatches = (findResults && findResults[0] ? findResults[0].result : 0) || 0;
 
-            if (totalMatches > 0) {
-                const visibleResults = await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    func: getVisibleIndices,
-                });
-                visibleIndices = visibleResults[0].result || [];
-
-                if (visibleIndices.length > 0) {
-                    currentVisibleIndex = 0;
-                    navigateToMatch(visibleIndices[currentVisibleIndex], tab.id);
-                }
-            } else {
-                visibleIndices = [];
-                currentVisibleIndex = -1;
+            currentIndex = totalMatches > 0 ? 0 : -1;
+            if (currentIndex !== -1) {
+                navigateToMatch(currentIndex, tab.id);
             }
             updateResult();
 
         } catch (error) {
-            console.error("Failed to inject script:", error);
+            console.error("Script injection failed:", error);
             resultDiv.textContent = "Cannot search on this page.";
         }
     }
 
-    nextBtn.addEventListener("click", async () => {
-        if (visibleIndices.length === 0) return;
+    nextBtn.addEventListener("click", () => handleNavigation(1));
+    prevBtn.addEventListener("click", () => handleNavigation(-1));
+
+    async function handleNavigation(direction) {
+        if (totalMatches === 0) return;
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tab || !tab.id) return;
         
-        currentVisibleIndex = (currentVisibleIndex + 1) % visibleIndices.length;
-        navigateToMatch(visibleIndices[currentVisibleIndex], tab.id);
+        currentIndex = (currentIndex + direction + totalMatches) % totalMatches;
+        navigateToMatch(currentIndex, tab.id);
         updateResult();
-    });
-
-    prevBtn.addEventListener("click", async () => {
-        if (visibleIndices.length === 0) return;
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tab || !tab.id) return;
-
-        currentVisibleIndex = (currentVisibleIndex - 1 + visibleIndices.length) % visibleIndices.length;
-        navigateToMatch(visibleIndices[currentVisibleIndex], tab.id);
-        updateResult();
-    });
+    }
     
     patternButtonsContainer.addEventListener("click", (event) => {
         if (event.target.classList.contains('pattern-btn')) {
             searchInput.value = event.target.dataset.pattern;
-            performSearch(); // Automatically search when a pattern is clicked
+            performSearch();
         }
     });
 
     clearBtn.addEventListener("click", async () => {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tab || !tab.id) return;
+        
         totalMatches = 0;
-        visibleIndices = [];
-        currentVisibleIndex = -1;
+        currentIndex = -1;
         searchInput.value = "";
-        resultDiv.textContent = "Highlights cleared.";
-
-        // Clear the stored pattern
         chrome.storage.local.remove('lastSearchPattern');
-
-        chrome.scripting.executeScript({
+        
+        await chrome.scripting.executeScript({
             target: { tabId: tab.id },
-            func: clearAllHighlights
+            func: highlightController,
+            args: [{ action: 'clear' }]
         });
+        
+        resultDiv.textContent = "Highlights cleared.";
     });
-
-    // --- Helper Functions ---
-    // (navigateToMatch and updateResult functions remain unchanged)
 
     function navigateToMatch(index, tabId) {
         chrome.scripting.executeScript({
             target: { tabId: tabId },
-            func: scrollToMatch,
-            args: [index]
+            func: highlightController,
+            args: [{ action: 'scrollTo', index: index }]
         });
     }
 
     function updateResult() {
         if (totalMatches > 0) {
-            if (visibleIndices.length > 0) {
-                resultDiv.textContent = `Showing ${currentVisibleIndex + 1} of ${visibleIndices.length} matches`;
-            } else {
-                resultDiv.textContent = `Found ${totalMatches} hidden matches.`;
-            }
-        } else if (resultDiv.textContent !== "Highlights cleared.") {
+            resultDiv.textContent = `Showing ${currentIndex + 1} of ${totalMatches}`;
+        } else if (searchInput.value) { // Only show "no matches" if a search was performed
             resultDiv.textContent = "No matches found.";
+        } else {
+            resultDiv.textContent = "Enter a pattern to search.";
         }
     }
 });
