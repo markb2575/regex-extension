@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text Search</title>
+    <style>
+        body { font-family: sans-serif; width: 280px; padding: 10px; }
+        #controls { display: flex; gap: 5px; margin-bottom: 10px; }
+        #searchInput { flex-grow: 1; }
+        #extra-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        #pattern-buttons button { padding: 4px 8px; font-size: 12px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer; border-radius: 4px; }
+        #pattern-buttons button:hover { background-color: #e0e0e0; }
+        #nav-controls { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <input type="text" id="searchInput" placeholder="Enter regex pattern...">
+        <button id="searchBtn">Find</button>
+    </div>
+    
+    <div id="extra-controls">
+        <div id="pattern-buttons">
+            <button class="pattern-btn" data-pattern="\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b">Email</button>
+            <button class="pattern-btn" data-pattern="\b(?:https?:\/\/)(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}(?:\/[^\s]*)?\b">URL</button>
+            <button class="pattern-btn" data-pattern="\b(?:\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{4}[-/]\d{1,2}[-/]\d{1,2})\b">Date</button>
+        </div>
+        <button id="clearBtn">Clear</button>
+    </div>
+
+    <div id="result">Enter a pattern to search.</div>
+
+    <div id="nav-controls">
+        <button id="prevBtn">&lt; Prev</button>
+        <button id="nextBtn">Next &gt;</button>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

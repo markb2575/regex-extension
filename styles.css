@@ -1,0 +1,9 @@
+.gemini-highlight {
+    background-color: yellow;
+    color: black;
+}
+
+.gemini-highlight-current {
+    background-color: orange;
+    border: 1px solid red;
+}
