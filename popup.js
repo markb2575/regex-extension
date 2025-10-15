@@ -31,33 +31,52 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     async function performSearch() {
-        const pattern = searchInput.value;
+        // Get the raw input from the user
+        let pattern = searchInput.value;
         if (!pattern) return;
-
-        chrome.storage.local.set({ lastSearchPattern: pattern });
-
+    
+        let isRegex = false;
+    
+        // Check if the input is wrapped in slashes, indicating a regex
+        if (pattern.startsWith('/') && pattern.lastIndexOf('/') > 0) {
+            isRegex = true;
+            // Extract the pattern from between the slashes
+            pattern = pattern.substring(1, pattern.lastIndexOf('/'));
+        }
+    
+        // Save the original search term to local storage for persistence
+        chrome.storage.local.set({ lastSearchPattern: searchInput.value });
+    
+        // Get the active tab to inject the script into
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tab || !tab.id) return;
         
         try {
+            // Execute the main controller function on the page
             const findResults = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: highlightController,
                 args: [{
                     action: 'find',
-                    pattern: pattern,
+                    pattern: pattern, // The clean pattern (text or regex)
+                    isRegex: isRegex, // The flag indicating the pattern type
                     shouldSearchAttributes: searchAttributesCheckbox.checked
                 }]
             });
-
+    
+            // Process the results returned from the script
             totalMatches = (findResults && findResults[0] ? findResults[0].result : 0) || 0;
-
-            currentIndex = totalMatches > 0 ? 0 : -1;
-            if (currentIndex !== -1) {
+    
+            // If matches were found, set the index to the first match and navigate to it
+            if (totalMatches > 0) {
+                currentIndex = 0;
                 navigateToMatch(currentIndex, tab.id);
+            } else {
+                currentIndex = -1;
             }
+            // Update the "Showing X of Y" text in the UI
             updateResult();
-
+    
         } catch (error) {
             console.error("Script injection failed:", error);
             resultDiv.textContent = "Cannot search on this page.";

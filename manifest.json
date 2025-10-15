@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Text/Regex Highlighter",
-    "version": "1.5",
+    "version": "1.6",
     "description": "Finds, highlights, and navigates text and regex matches on a page.",
     "permissions": [
         "activeTab",
@@ -16,6 +16,15 @@
     },
     "background": {
         "service_worker": "background.js"
+    },
+    "commands": {
+        "_execute_action": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+F",
+                "mac": "Command+Shift+F"
+            },
+            "description": "Toggle Highlighter"
+        }
     },
     "content_scripts": [
         {

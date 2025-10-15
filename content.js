@@ -2,7 +2,15 @@
 
 let iframe = null;
 const IFRAME_ID = "gemini-highlighter-iframe";
-
+document.addEventListener('keydown', (event) => {
+    // Check for Ctrl+F (or Cmd+F on Mac)
+    if (event.key === 'f' && (event.ctrlKey || event.metaKey)) {
+        // Stop the browser's native find bar from appearing
+        event.preventDefault();
+        // Toggle your extension's UI
+        toggleIframe();
+    }
+});
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === "TOGGLE_UI") {
         toggleIframe();

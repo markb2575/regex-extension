@@ -3,7 +3,9 @@ function highlightController(options) {
         if (!el) return false;
         return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
     }
-
+    function escapeRegex(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+    }
     function clearAllHighlights() {
         // Remove highlight classes
         document.querySelectorAll('.gemini-highlight').forEach(el => {
@@ -59,11 +61,12 @@ function highlightController(options) {
         return isElementVisible(el);
     }
 
-    function findAndHighlight(pattern, shouldSearchAttributes) {
+    function findAndHighlight(pattern, isRegex, shouldSearchAttributes) {
         clearAllHighlights();
 
         if (!pattern) return 0;
-        const regex = new RegExp(pattern, "i");
+        const finalPattern = isRegex ? pattern : escapeRegex(pattern);
+        const regex = new RegExp(finalPattern, "i");
         const attrMatchElements = [];
 
         if (shouldSearchAttributes) {
@@ -141,7 +144,7 @@ function highlightController(options) {
     // --- Action router ---
     switch (options.action) {
         case 'find':
-            return findAndHighlight(options.pattern, options.shouldSearchAttributes);
+            return findAndHighlight(options.pattern, options.isRegex, options.shouldSearchAttributes);
         case 'clear':
             clearAllHighlights();
             return;
