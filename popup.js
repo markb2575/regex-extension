@@ -1,3 +1,4 @@
+// popup.js
 document.addEventListener("DOMContentLoaded", () => {
     // --- Get references to all our HTML elements ---
     const searchInput = document.getElementById("searchInput");
@@ -7,26 +8,47 @@ document.addEventListener("DOMContentLoaded", () => {
     const nextBtn = document.getElementById("nextBtn");
     const clearBtn = document.getElementById("clearBtn");
     const patternButtonsContainer = document.getElementById("pattern-buttons");
+    const closeBtn = document.getElementById("closeBtn");
+    const searchAttributesCheckbox = document.getElementById("searchAttributes");
 
     // --- State variables ---
     let totalMatches = 0;
     let visibleIndices = [];
-    let currentVisibleIndex = -1; 
+    let currentVisibleIndex = -1;
+
+    // --- Load last search on startup and re-run it ---
+    chrome.storage.local.get(['lastSearchPattern'], (result) => {
+        if (result.lastSearchPattern) {
+            searchInput.value = result.lastSearchPattern;
+            // Automatically trigger the search if a previous pattern exists
+            performSearch(); 
+        }
+    });
 
     // --- Event Listeners ---
 
-    searchBtn.addEventListener("click", async () => {
+    // Close the UI by sending a message to the parent content script
+    closeBtn.addEventListener("click", () => {
+        window.parent.postMessage({ type: "CLOSE_UI" }, "*");
+    });
+
+    searchBtn.addEventListener("click", performSearch);
+
+    async function performSearch() {
         const pattern = searchInput.value;
         if (!pattern) return;
 
+        // Save the pattern to storage for persistence
+        chrome.storage.local.set({ lastSearchPattern: pattern });
+
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tab || !tab.id) return;
-
+        const shouldSearchAttributes = searchAttributesCheckbox.checked;
         try {
             const findResults = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: findAndHighlight,
-                args: [pattern]
+                args: [pattern, shouldSearchAttributes]
             });
 
             if (!findResults || !findResults[0]) return;
@@ -53,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Failed to inject script:", error);
             resultDiv.textContent = "Cannot search on this page.";
         }
-    });
+    }
 
     nextBtn.addEventListener("click", async () => {
         if (visibleIndices.length === 0) return;
@@ -78,6 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
     patternButtonsContainer.addEventListener("click", (event) => {
         if (event.target.classList.contains('pattern-btn')) {
             searchInput.value = event.target.dataset.pattern;
+            performSearch(); // Automatically search when a pattern is clicked
         }
     });
 
@@ -89,6 +112,10 @@ document.addEventListener("DOMContentLoaded", () => {
         currentVisibleIndex = -1;
         searchInput.value = "";
         resultDiv.textContent = "Highlights cleared.";
+
+        // Clear the stored pattern
+        chrome.storage.local.remove('lastSearchPattern');
+
         chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: clearAllHighlights
@@ -96,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // --- Helper Functions ---
+    // (navigateToMatch and updateResult functions remain unchanged)
 
     function navigateToMatch(index, tabId) {
         chrome.scripting.executeScript({
@@ -117,165 +145,3 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 });
-
-
-// --- Functions to be Injected into the Web Page ---
-
-function getVisibleIndices() {
-    if (!window.geminiMatches) return [];
-    
-    const visibleIndices = [];
-    window.geminiMatches.forEach((el, index) => {
-        // This is a more robust visibility check.
-        // It ensures the element has actual dimensions and is not explicitly hidden.
-        const style = window.getComputedStyle(el);
-        const isVisible = 
-            style.display !== 'none' &&
-            style.visibility !== 'hidden' &&
-            el.offsetWidth > 0 &&
-            el.offsetHeight > 0;
-
-        if (isVisible) {
-            visibleIndices.push(index);
-        }
-    });
-    return visibleIndices;
-}
-
-function clearAllHighlights() {
-    const textHighlights = document.querySelectorAll('span[data-gemini-highlight="text"]');
-    textHighlights.forEach(el => {
-        const parent = el.parentNode;
-        parent.replaceChild(document.createTextNode(el.textContent), el);
-        parent.normalize();
-    });
-
-    const attrHighlights = document.querySelectorAll('[data-gemini-highlight="attribute"]');
-    attrHighlights.forEach(el => {
-        el.removeAttribute('data-gemini-highlight');
-        el.style.backgroundColor = '';
-        el.style.position = ''; // Reset position
-        el.style.zIndex = '';   // Reset z-index
-    });
-
-    window.geminiMatches = [];
-}
-
-function findAndHighlight(pattern) {
-    // Cleanup logic is now self-contained
-    const textHighlights = document.querySelectorAll('span[data-gemini-highlight="text"]');
-    textHighlights.forEach(el => {
-        const parent = el.parentNode;
-        parent.replaceChild(document.createTextNode(el.textContent), el);
-        parent.normalize();
-    });
-    const attrHighlights = document.querySelectorAll('[data-gemini-highlight="attribute"]');
-    attrHighlights.forEach(el => {
-        el.removeAttribute('data-gemini-highlight');
-        el.style.backgroundColor = '';
-        el.style.position = ''; // Reset position
-        el.style.zIndex = '';   // Reset z-index
-    });
-
-    if (!pattern) return 0;
-    
-    const regex = new RegExp(pattern, "i");
-    const attributeWhitelist = ['href'];
-
-    const attrMatchElements = [];
-
-    // Find Attribute Matches FIRST
-    const allElements = document.querySelectorAll('*');
-    allElements.forEach(el => {
-        for (const attr of el.attributes) {
-            if (attributeWhitelist.includes(attr.name.toLowerCase()) && regex.test(attr.value)) {
-                el.dataset.geminiHighlight = "attribute";
-                el.style.backgroundColor = 'rgba(173, 216, 230, 0.3)';
-                el.style.position = 'relative'; // Set position
-                el.style.zIndex = '9999';       // Set z-index
-                attrMatchElements.push(el);
-                break; 
-            }
-        }
-    });
-
-    // Find Text Matches, ignoring any inside an already-found attribute match
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-    let textNode;
-    const nodesToProcess = [];
-    while (textNode = walker.nextNode()) {
-        const parentTag = textNode.parentNode.tagName;
-        if (parentTag === 'SCRIPT' || parentTag === 'STYLE' || parentTag === 'CODE') continue;
-
-        if (attrMatchElements.some(el => el.contains(textNode))) {
-            continue;
-        }
-
-        if (regex.test(textNode.textContent)) {
-            nodesToProcess.push(textNode);
-        }
-    }
-
-    const textMatchElements = [];
-    nodesToProcess.forEach(node => {
-        const matches = node.textContent.matchAll(regex);
-        let lastIndex = 0;
-        const newNodes = [];
-        for (const match of matches) {
-            if (match.index > lastIndex) {
-                newNodes.push(document.createTextNode(node.textContent.slice(lastIndex, match.index)));
-            }
-            const span = document.createElement('span');
-            span.dataset.geminiHighlight = "text";
-            span.style.backgroundColor = 'yellow';
-            span.style.color = 'black';
-            span.textContent = match[0];
-            newNodes.push(span);
-            textMatchElements.push(span);
-            lastIndex = match.index + match[0].length;
-        }
-        if (lastIndex < node.textContent.length) {
-            newNodes.push(document.createTextNode(node.textContent.slice(lastIndex)));
-        }
-        node.replaceWith(...newNodes);
-    });
-
-    window.geminiMatches = [...attrMatchElements, ...textMatchElements];
-    return window.geminiMatches.length;
-}
-
-function scrollToMatch(index) {
-    if (!window.geminiMatches || window.geminiMatches.length === 0) return;
-
-    // Reset styles for all matches
-    window.geminiMatches.forEach(el => {
-        if (el.dataset.geminiHighlight === 'text') {
-            el.style.backgroundColor = 'yellow';
-            el.style.position = ''; // Make sure text spans don't have these
-            el.style.zIndex = '';
-        } else if (el.dataset.geminiHighlight === 'attribute') {
-            el.style.backgroundColor = 'rgba(173, 216, 230, 0.3)';
-            el.style.position = 'relative'; // Ensure these are always set for attribute matches
-            el.style.zIndex = '9999';
-        }
-    });
-
-    const targetElement = window.geminiMatches[index];
-    if (targetElement) {
-        console.log(targetElement);
-
-        if (targetElement.dataset.geminiHighlight === 'text') {
-            targetElement.style.backgroundColor = 'orange';
-        } else if (targetElement.dataset.geminiHighlight === 'attribute') {
-            targetElement.style.backgroundColor = 'rgba(255, 165, 0, 0.4)';
-            // Make the current one stand out even more, just in case
-            targetElement.style.zIndex = '10000'; 
-        }
-        
-        targetElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'nearest'
-        });
-    }
-}

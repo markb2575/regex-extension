@@ -3,37 +3,186 @@
 <head>
     <title>Text Search</title>
     <style>
-        body { font-family: sans-serif; width: 280px; padding: 10px; }
-        #controls { display: flex; gap: 5px; margin-bottom: 10px; }
-        #searchInput { flex-grow: 1; }
-        #extra-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        #pattern-buttons button { padding: 4px 8px; font-size: 12px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer; border-radius: 4px; }
-        #pattern-buttons button:hover { background-color: #e0e0e0; }
-        #nav-controls { margin-top: 10px; }
+        :root {
+            --bg-primary: #2b2d31;
+            --bg-secondary: #383a40;
+            --bg-tertiary-hover: #4a4d53;
+            --text-primary: #e6e6e6;
+            --text-secondary: #b3b3b3;
+            --accent-primary: #7289da;
+            --accent-primary-hover: #677bc4;
+            --border-color: #43464c;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            width: 300px;
+            padding: 15px;
+            margin: 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* --- Header --- */
+        #header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #header h4 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        #closeBtn {
+            border: none;
+            background: transparent;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 5px;
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
+        }
+        #closeBtn:hover {
+            color: var(--text-primary);
+        }
+
+        /* --- Controls --- */
+        .control-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        #searchInput {
+            flex-grow: 1;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 8px 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+        #searchInput::placeholder {
+            color: var(--text-secondary);
+        }
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        /* --- Buttons --- */
+        button {
+            border: none;
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #searchBtn {
+            background-color: var(--accent-primary);
+            color: white;
+        }
+        #searchBtn:hover {
+            background-color: var(--accent-primary-hover);
+        }
+
+        #prevBtn, #nextBtn, #clearBtn, .pattern-btn {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        #prevBtn:hover, #nextBtn:hover, #clearBtn:hover, .pattern-btn:hover {
+            background-color: var(--bg-tertiary-hover);
+        }
+
+        #extra-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        #pattern-buttons {
+            display: flex;
+            gap: 6px;
+        }
+        .pattern-btn {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        /* --- Options & Results --- */
+        #options-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        #searchAttributes {
+            accent-color: var(--accent-primary);
+        }
+        
+        #result {
+            color: var(--text-secondary);
+            font-size: 13px;
+            min-height: 1.2em;
+            text-align: center;
+        }
+
+        #nav-controls {
+            display: flex;
+            gap: 8px;
+        }
+        #nav-controls button {
+            flex-grow: 1;
+        }
     </style>
 </head>
 <body>
-    <div id="controls">
-        <input type="text" id="searchInput" placeholder="Enter regex pattern...">
+    <div id="header">
+        <h4>Text/Regex Highlighter</h4>
+        <button id="closeBtn" title="Close">&times;</button>
+    </div>
+
+    <div class="control-group">
+        <input type="text" id="searchInput" placeholder="Enter text or /regex/...">
         <button id="searchBtn">Find</button>
     </div>
     
     <div id="extra-controls">
         <div id="pattern-buttons">
-            <button class="pattern-btn" data-pattern="\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b">Email</button>
-            <button class="pattern-btn" data-pattern="\b(?:https?:\/\/)(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}(?:\/[^\s]*)?\b">URL</button>
-            <button class="pattern-btn" data-pattern="\b(?:\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{4}[-/]\d{1,2}[-/]\d{1,2})\b">Date</button>
+            <button class="pattern-btn" data-pattern="\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b" title="Find emails">Email</button>
+            <button class="pattern-btn" data-pattern="\b(?:https?:\/\/)(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}(?:\/[^\s]*)?\b" title="Find URLs">URL</button>
+            <button class="pattern-btn" data-pattern="\b(?:\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{4}[-/]\d{1,2}[-/]\d{1,2})\b" title="Find dates">Date</button>
         </div>
         <button id="clearBtn">Clear</button>
     </div>
-
+    
+    <div id="options-controls">
+        <input type="checkbox" id="searchAttributes" name="searchAttributes" checked>
+        <label for="searchAttributes">Search within links</label>
+    </div>
+    
     <div id="result">Enter a pattern to search.</div>
 
     <div id="nav-controls">
         <button id="prevBtn">&lt; Prev</button>
         <button id="nextBtn">Next &gt;</button>
     </div>
-
+    
+    <script src="page_functions.js"></script> 
     <script src="popup.js"></script>
 </body>
 </html>
