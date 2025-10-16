@@ -8,12 +8,12 @@ function highlightController(options) {
     }
     function clearAllHighlights() {
         // Remove highlight classes
-        document.querySelectorAll('.gemini-highlight').forEach(el => {
-            el.classList.remove('gemini-highlight', 'gemini-highlight-current');
+        document.querySelectorAll('.regex-highlight').forEach(el => {
+            el.classList.remove('regex-highlight', 'regex-highlight-current');
         });
 
         // Replace <span> wrappers created for text highlights
-        document.querySelectorAll('span.gemini-highlight').forEach(el => {
+        document.querySelectorAll('span.regex-highlight').forEach(el => {
             const parent = el.parentNode;
             if (parent) {
                 parent.replaceChild(document.createTextNode(el.textContent), el);
@@ -21,7 +21,7 @@ function highlightController(options) {
             }
         });
 
-        window.geminiMatches = [];
+        window.regexMatches = [];
     }
 
     async function revealElement(el) {
@@ -72,10 +72,10 @@ function highlightController(options) {
         if (shouldSearchAttributes) {
             const attributeWhitelist = ['href'];
             document.body.querySelectorAll('*').forEach(el => {
-                if (el.classList.contains('gemini-highlight')) return;
+                if (el.classList.contains('regex-highlight')) return;
                 for (const attr of el.attributes) {
                     if (attributeWhitelist.includes(attr.name.toLowerCase()) && regex.test(attr.value)) {
-                        el.classList.add('gemini-highlight');
+                        el.classList.add('regex-highlight');
                         attrMatchElements.push(el);
                         break;
                     }
@@ -105,7 +105,7 @@ function highlightController(options) {
                     newNodes.push(document.createTextNode(node.textContent.slice(lastIndex, match.index)));
                 }
                 const span = document.createElement('span');
-                span.classList.add('gemini-highlight');
+                span.classList.add('regex-highlight');
                 span.textContent = match[0];
                 newNodes.push(span);
                 textMatchElements.push(span);
@@ -117,22 +117,22 @@ function highlightController(options) {
             node.replaceWith(...newNodes);
         });
 
-        window.geminiMatches = [...attrMatchElements, ...textMatchElements];
-        return window.geminiMatches.length;
+        window.regexMatches = [...attrMatchElements, ...textMatchElements];
+        return window.regexMatches.length;
     }
 
     async function scrollToMatch(index) {
-        if (!window.geminiMatches || !window.geminiMatches[index]) return;
-        const targetElement = window.geminiMatches[index];
+        if (!window.regexMatches || !window.regexMatches[index]) return;
+        const targetElement = window.regexMatches[index];
         console.log(targetElement)
         if (!isElementVisible(targetElement)) {
             await revealElement(targetElement);
         }
 
-        document.querySelectorAll('.gemini-highlight-current')
-            .forEach(el => el.classList.remove('gemini-highlight-current'));
+        document.querySelectorAll('.regex-highlight-current')
+            .forEach(el => el.classList.remove('regex-highlight-current'));
 
-        targetElement.classList.add('gemini-highlight-current');
+        targetElement.classList.add('regex-highlight-current');
         
         targetElement.scrollIntoView({
             behavior: 'smooth',

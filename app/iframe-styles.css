@@ -15,7 +15,7 @@
 --- Iframe Container Styles (for the main page) ---
 ===============================================
 */
-#gemini-highlighter-iframe {
+#regex-highlighter-iframe {
     position: fixed;
     top: 15px;
     right: 15px;
@@ -30,7 +30,7 @@
     display: none; 
 }
 
-#gemini-highlighter-iframe.visible {
+#regex-highlighter-iframe.visible {
     display: block;
 }
 

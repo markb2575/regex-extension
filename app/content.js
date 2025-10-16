@@ -1,7 +1,7 @@
 // content.js
 
 let iframe = null;
-const IFRAME_ID = "gemini-highlighter-iframe";
+const IFRAME_ID = "regex-highlighter-iframe";
 document.addEventListener('keydown', (event) => {
     // Check for Ctrl+F (or Cmd+F on Mac)
     if (event.key === 'f' && (event.ctrlKey || event.metaKey)) {
@@ -29,9 +29,9 @@ window.addEventListener("message", (event) => {
 // This function now injects BOTH stylesheets
 function injectStyles() {
     // Inject iframe styles if not already present
-    if (!document.getElementById('gemini-iframe-styles')) {
+    if (!document.getElementById('regex-iframe-styles')) {
         const iframeLink = document.createElement('link');
-        iframeLink.id = 'gemini-iframe-styles';
+        iframeLink.id = 'regex-iframe-styles';
         iframeLink.rel = 'stylesheet';
         iframeLink.type = 'text/css';
         iframeLink.href = chrome.runtime.getURL('iframe-styles.css');
@@ -39,9 +39,9 @@ function injectStyles() {
     }
     
     // Inject highlight styles if not already present
-    if (!document.getElementById('gemini-highlight-styles')) {
+    if (!document.getElementById('regex-highlight-styles')) {
         const highlightLink = document.createElement('link');
-        highlightLink.id = 'gemini-highlight-styles';
+        highlightLink.id = 'regex-highlight-styles';
         highlightLink.rel = 'stylesheet';
         highlightLink.type = 'text/css';
         highlightLink.href = chrome.runtime.getURL('highlight-styles.css');

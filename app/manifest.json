@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Text/Regex Highlighter",
+    "name": "Text/Regex Search",
     "version": "1.6",
     "description": "Finds, highlights, and navigates text and regex matches on a page.",
     "permissions": [
@@ -12,7 +12,7 @@
         "<all_urls>"
     ],
     "action": {
-        "default_title": "Toggle Highlighter"
+        "default_title": "Toggle Search"
     },
     "background": {
         "service_worker": "background.js"
@@ -23,7 +23,7 @@
                 "default": "Ctrl+Shift+F",
                 "mac": "Command+Shift+F"
             },
-            "description": "Toggle Highlighter"
+            "description": "Toggle Search"
         }
     },
     "content_scripts": [

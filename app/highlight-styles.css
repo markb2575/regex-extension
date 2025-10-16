@@ -1,12 +1,12 @@
 /* --- Base highlight --- */
-.gemini-highlight {
+.regex-highlight {
     position: relative;
     z-index: 10;
     color: black !important;
     isolation: isolate; /* ensure pseudo-elements stay inside stacking context */
   }
   
-  .gemini-highlight::before {
+  .regex-highlight::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -17,14 +17,14 @@
   }
   
   /* --- Current (active) highlight --- */
-  .gemini-highlight-current {
+  .regex-highlight-current {
     position: relative;
     z-index: 11;
     color: black !important;
     isolation: isolate;
   }
   
-  .gemini-highlight-current::before {
+  .regex-highlight-current::before {
     content: "";
     position: absolute;
     inset: 0;
