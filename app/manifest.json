@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Text/Regex Search",
-    "version": "1.6",
+    "version": "1.7",
     "description": "Finds, highlights, and navigates text and regex matches on a page.",
     "permissions": [
         "activeTab",
@@ -12,7 +12,13 @@
         "<all_urls>"
     ],
     "action": {
-        "default_title": "Toggle Search"
+        "default_title": "Toggle Search",
+        "default_icon": {
+            "16": "icons/icon-16.png",
+            "32": "icons/icon-32.png",
+            "48": "icons/icon-48.png",
+            "128": "icons/icon-128.png"
+        }
     },
     "background": {
         "service_worker": "background.js"
@@ -37,7 +43,8 @@
             "resources": [
                 "popup.html", 
                 "iframe-styles.css", 
-                "highlight-styles.css"
+                "highlight-styles.css",
+                "iframe-container.css"
             ],
             "matches": ["<all_urls>"]
         }

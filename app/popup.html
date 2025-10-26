@@ -1,42 +1,83 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Text Search</title>
-    <link rel="stylesheet" href="iframe-styles.css">
-</head>
-<body id="popup-container">
+    <link rel="stylesheet" href="iframe-styles.css" />
+  </head>
+  <body id="popup-container">
     <div id="header">
-        <h4>Text/Regex Search</h4>
-        <button id="closeBtn" title="Close">&times;</button>
+      <div id="result">Enter a text/regex to search.</div>
+      <button id="closeBtn" title="Close">&times;</button>
     </div>
 
     <div class="control-group">
-        <input type="text" id="searchInput" placeholder="Enter text or /regex/...">
-        <button id="searchBtn">Find</button>
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Enter text or /regex/..."
+      />
     </div>
-    
-    <div id="extra-controls">
-        <div id="pattern-buttons">
-            <button class="pattern-btn" data-pattern="/\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/" title="Find emails">Email</button>
-            <button class="pattern-btn" data-pattern="/\b(?:https?:\/\/)(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}(?:\/[^\s]*)?\b/" title="Find URLs">URL</button>
-            <button class="pattern-btn" data-pattern="/\b(?:\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{4}[-/]\d{1,2}[-/]\d{1,2})\b/" title="Find dates">Date</button>
-        </div>
-        <button id="clearBtn">Clear</button>
-    </div>
-    
-    <div id="options-controls">
-        <input type="checkbox" id="searchAttributes" name="searchAttributes" checked>
-        <label for="searchAttributes">Search within links</label>
-    </div>
-    
-    <div id="result">Enter a pattern to search.</div>
 
-    <div id="nav-controls">
-        <button id="prevBtn">&lt; Prev</button>
-        <button id="nextBtn">Next &gt;</button>
+    <div id="extra-controls">
+      <div id="pattern-buttons">
+        <button
+          class="pattern-btn"
+          data-pattern="/\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/"
+          title="Find emails"
+        >
+          Email
+        </button>
+        <button
+          class="pattern-btn"
+          data-pattern="/\b(?:https?:\/\/)?www\.(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}(?:\/[^\s]*)?\b/"
+          title="Find URLs (www only)"
+        >
+          URL
+        </button>
+        <button
+          class="pattern-btn"
+          data-pattern="/\b(?:\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{4}[-/]\d{1,2}[-/]\d{1,2})\b/"
+          title="Find dates"
+        >
+          Date
+        </button>
+      </div>
+      <button id="clearBtn">Clear</button>
     </div>
-    
-    <script src="page_functions.js"></script> 
+
+    <div id="options-controls">
+        <div class="search-option">
+            <input
+              type="checkbox"
+              id="searchAttributes"
+              name="searchAttributes"
+              checked
+            />
+            <label for="searchAttributes">Search within links</label>
+          </div>
+
+      <div id="nav-controls">
+        <button type="button" id="prevBtn" title="Previous Match">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+            <path
+              fill-rule="evenodd"
+              d="M8 4a.5.5 0 0 1 .354.146l6 6a.5.5 0 0 1-.708.708L8 5.207 2.354 10.854a.5.5 0 1 1-.708-.708l6-6A.5.5 0 0 1 8 4z"
+            />
+          </svg>
+        </button>
+        
+        <button type="button" id="nextBtn" title="Next Match">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+            <path
+              fill-rule="evenodd"
+              d="M8 12a.5.5 0 0 1-.354-.146l-6-6a.5.5 0 0 1 .708-.708L8 10.793l5.646-5.647a.5.5 0 0 1 .708.708l-6 6A.5.5 0 0 1 8 12z"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <script src="page_functions.js"></script>
     <script src="popup.js"></script>
-</body>
+  </body>
 </html>

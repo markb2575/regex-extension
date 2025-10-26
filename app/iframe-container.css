@@ -1,0 +1,22 @@
+/* NEW FILE: iframe-container.css */
+
+#regex-highlighter-iframe {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    width: 450px;
+    height: 190px;
+    /* Use hardcoded values, NOT variables */
+    border: 1px solid #43464c; 
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    z-index: 99999999;
+    overflow: hidden;
+    /* Use a hardcoded value */
+    background-color: #222222;
+    display: none; 
+}
+
+#regex-highlighter-iframe.visible {
+    display: block;
+}
