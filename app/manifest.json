@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Text/Regex Search",
-    "version": "1.7",
+    "version": "1.8",
     "description": "Finds, highlights, and navigates text and regex matches on a page.",
     "permissions": [
         "activeTab",
